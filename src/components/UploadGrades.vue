@@ -1,5 +1,4 @@
 <script setup>
-import axios from 'axios';
 import { s3 } from '../integrations/aws';
 </script>
 
@@ -31,36 +30,57 @@ export default {
     uploadFile() {
       if (!this.file) return;
 
-      const params = {
-        Bucket: import.meta.env.VITE_AWS_BUCKET,
-        Key: this.file.name.replace(/\s/g, '-'),
-        Expires: 10,
-        ContentType: this.file.type,
-      }
-      console.log(params);
-      const url = s3.getSignedUrl('putObject', params);
-      console.log(url);
+      const reader = new FileReader();
+      console.log('1');
+      reader.onload = function (event) {
+        console.log('2');
+        const csvContent = event.target.result;
 
-      return axios
-        .put(url, this.file, {
-          headers: {
-            'Content-Type': this.file.type,
-          },
+        const params = {
+          Bucket: import.meta.env.VITE_AWS_BUCKET,
+          Key: 'data.csv',
+          // ContentType: this.file.type,
+          Body: csvContent
+        }
+
+        s3.putObject(params, (err, data) => {
+          console.log('3');
+          console.log(err ? err : 'uploaded csv');
         })
-        .then(result => {
-          const bucketUrl = decodeURIComponent(result.request.responseURL).split(
-            key
-          )[0]
-          result.key = key
-          result.fullPath = bucketUrl + key
-          this.file = undefined;
-          return result
-        })
-        .catch(err => {
-          // TODO: error handling
-          this.file = undefined;
-          console.log(err)
-        })
+      }
+
+      reader.readAsText(this.file);
+
+      // const params = {
+      //   Bucket: import.meta.env.VITE_AWS_BUCKET,
+      //   Key: this.file.name.replace(/\s/g, '-'),
+      //   ContentType: this.file.type,
+      //   Body: csvContent
+      // }
+      // console.log(params);
+      // const url = s3.getSignedUrl('putObject', params);
+      // console.log(url);
+
+      // return axios
+      //   .put(url, this.file, {
+      //     headers: {
+      //       'Content-Type': this.file.type,
+      //     },
+      //   })
+      //   .then(result => {
+      //     const bucketUrl = decodeURIComponent(result.request.responseURL).split(
+      //       key
+      //     )[0]
+      //     result.key = key
+      //     result.fullPath = bucketUrl + key
+      //     this.file = undefined;
+      //     return result
+      //   })
+      //   .catch(err => {
+      //     // TODO: error handling
+      //     this.file = undefined;
+      //     console.log(err)
+      //   })
     }
   },
   computed: {
